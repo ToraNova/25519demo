@@ -40,6 +40,9 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
+//additional for X25519 (ECDH)
+import org.bouncycastle.math.ec.rfc7748.X25519;
+
 public class BC25519{
 
 	/*
@@ -106,6 +109,55 @@ public class BC25519{
 			}else{
 				//signature verified
 				System.out.println("Cross FAIL");
+			}
+
+		}else if(args[0].equals("ecdh")){
+
+			//initializes the CSPRNG
+			SecureRandom r = new SecureRandom();
+
+			//ECDH with x25519 sample code
+			//container for secret key of 2 parties A and B
+			byte[] kA = new byte[32];
+			byte[] kB = new byte[32];
+
+			//container for kAg and kBg, where g is the base
+			byte[] qA = new byte[32];
+			byte[] qB = new byte[32];
+
+			//container for the shared secrets (they should equate)
+			byte[] sA = new byte[32];
+			byte[] sB = new byte[32];
+
+			//generate ephemeral private key
+			r.nextBytes(kA);
+			r.nextBytes(kB);
+
+			//output to display (FOR DEMO PURPOSES ONLY)
+			System.out.println( Base64.getEncoder().encodeToString( kA ) );
+			System.out.println( Base64.getEncoder().encodeToString( kB ) );
+
+			// obtain public key ( kAg & kBg )
+			// scalarMultBase( scalar, scalar offset, output, output offset )
+			X25519.scalarMultBase(kA, 0, qA, 0);
+			X25519.scalarMultBase(kB, 0, qB, 0);
+
+			// computes shared secret (key exchange)
+			// scalarMult( scalar, scalar offset, point, point offset, output, output offset )
+			X25519.scalarMult( kA, 0 , qB, 0, sA, 0);
+			X25519.scalarMult( kB, 0 , qA, 0, sB, 0);
+
+			// now sA and sB should be the same
+			//output to display (FOR DEMO PURPOSES ONLY)
+			System.out.println( Base64.getEncoder().encodeToString( sA ) );
+			System.out.println( Base64.getEncoder().encodeToString( sB ) );
+
+			//check if the 2 containers are equal
+			for(int i=0;i<32;i++){
+				if(sA[i] != sB[i]){
+					//this shouldn't happen
+					System.out.println("ECDH on x25519 has failed.");
+				}
 			}
 
 		}
